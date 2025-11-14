@@ -688,3 +688,94 @@ procdump(void)
     printf("\n");
   }
 }
+
+// prototype
+int build_ptree(int pid);
+void build_children(struct proc *parent, int parent_index);
+
+// ===== ptree implementation =====
+
+#include "ptree_struct.h"
+
+// یک بافر سراسری در کرنل برای درخت فرایندها
+struct proc_tree ptree_buf;
+
+// فقط این دو تابع در سایر فایل‌ها دیده می‌شوند:
+int  build_ptree(int pid);
+void build_children(struct proc *parent, int parent_index);
+
+// ساخت ریشه و پر کردن ptree_buf
+int
+build_ptree(int pid)
+{
+  struct proc *p;
+  struct proc *root = 0;
+
+  // پیدا کردن پروسه‌ی ریشه
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->pid == pid && p->state != UNUSED) {
+      root = p;
+      release(&p->lock);
+      break;
+    }
+    release(&p->lock);
+  }
+
+  if(root == 0)
+    return -1;
+
+  // آماده‌سازی درخت در بافر سراسری
+  ptree_buf.count = 0;
+
+  int root_index = ptree_buf.count++;
+  if(root_index >= NPROC)
+    return -1;
+
+  struct proc_info *rinfo = &ptree_buf.procs[root_index];
+  safestrcpy(rinfo->name, root->name, sizeof(rinfo->name));
+  rinfo->pid = root->pid;
+  rinfo->child_count = 0;
+
+  ptree_buf.root_index = root_index;
+
+  // ساختن بچه‌ها
+  build_children(root, root_index);
+
+  return 0;
+}
+
+// بازگشتی: فرزندان یک parent را به درخت اضافه می‌کند
+void
+build_children(struct proc *parent, int parent_index)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state != UNUSED && p->parent == parent) {
+
+      int child_index = ptree_buf.count++;
+      if(child_index >= NPROC){
+        release(&p->lock);
+        return;
+      }
+
+      struct proc_info *cinfo = &ptree_buf.procs[child_index];
+      safestrcpy(cinfo->name, p->name, sizeof(cinfo->name));
+      cinfo->pid = p->pid;
+      cinfo->child_count = 0;
+
+      struct proc_info *pinfo = &ptree_buf.procs[parent_index];
+      if(pinfo->child_count < NPROC)
+        pinfo->children[pinfo->child_count++] = child_index;
+
+      release(&p->lock);
+
+      // بازگشتی برای نوه‌ها
+      build_children(p, child_index);
+    } else {
+      release(&p->lock);
+    }
+  }
+}

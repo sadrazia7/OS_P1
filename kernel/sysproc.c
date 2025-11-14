@@ -113,3 +113,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_ptree(void)
+{
+  int pid;
+  uint64 uaddr;
+  extern struct proc_tree ptree_buf;   // بافر کرنلی که در proc.c تعریف می‌کنیم
+
+  argint(0, &pid);
+  argaddr(1, &uaddr);
+
+  // درخت را در بافر کرنل بساز
+  if(build_ptree(pid) < 0)
+    return -1;
+
+  struct proc *p = myproc();
+  if(copyout(p->pagetable, uaddr, (char *)&ptree_buf, sizeof(ptree_buf)) < 0)
+    return -1;
+
+  return 0;
+}
