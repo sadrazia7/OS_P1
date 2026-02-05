@@ -30,6 +30,8 @@ int uptime(void);
 int sysclcnt(void);
 int ptree(int pid, struct proc_tree *pt);
 int chpnice(int pid, int nice);
+int unshare(int flags);
+int trace(int mask);
 
 // ulib.c
 int stat(const char*, struct stat*);

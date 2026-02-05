@@ -45,3 +45,5 @@ entry("uptime");
 entry("sysclcnt");
 entry("ptree");
 entry("chpnice");
+entry("unshare");
+entry("trace");

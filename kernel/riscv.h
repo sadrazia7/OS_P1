@@ -15,6 +15,7 @@ r_mhartid()
 #define MSTATUS_MPP_M (3L << 11)
 #define MSTATUS_MPP_S (1L << 11)
 #define MSTATUS_MPP_U (0L << 11)
+#define PTE_S (1L << 8)   // Swapped
 
 static inline uint64
 r_mstatus()

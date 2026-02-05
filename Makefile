@@ -122,7 +122,6 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 # details:
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
 .PRECIOUS: %.o
-
 UPROGS=\
 	$U/_cat\
 	$U/_echo\
@@ -146,7 +145,10 @@ UPROGS=\
 	$U/_sysclcnt_test\
 	$U/_ptree_test\
 	$U/_reparent_test\
-	$U/_cfstest
+	$U/_cfstest\
+	$U/_swap_test\
+	$U/_ns_test\
+	$U/_trace_test
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

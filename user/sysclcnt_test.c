@@ -1,22 +1,51 @@
 #include "kernel/types.h"
-#include "kernel/stat.h"
 #include "user/user.h"
 
-int
-main(int argc, char *argv[])
-{
-  int n1, n2;
+static void summarize(const char *label, int before, int after) {
+    int diff = after - before;
+    printf("%s: before=%d after=%d diff=%d\n", label, before, after, diff);
 
-  n1 = sysclcnt();
-  printf("sysclcnt first: %d\n", n1);
-
-  // یک system call معمولی، مثل write/printf
-  printf("hello from test\n");
-
-  n2 = sysclcnt();
-  printf("sysclcnt second: %d\n", n2);
-
-  printf("difference = %d\n", n2 - n1);
-
-  exit(0);
+    if (diff < 1) {
+        printf("FAIL: syscall count did not increase as expected\n");
+    }
 }
+
+int main(int argc, char *argv[]) {
+    int start = sysclcnt();
+    if (start < 0) {
+        printf("ERROR: sysclcnt() failed: %d\n", start);
+        exit(-1);
+    }
+
+    printf("Initial count: %d\n", start);
+
+    int a = sysclcnt();
+    printf("hello from test\n");
+    int b = sysclcnt();
+    summarize("single-block", a, b);
+    int c = sysclcnt();
+
+    for (int i = 0; i < 5; i++) {
+        getpid();
+        sleep(1);
+        printf("i=%d\n", i);
+    }
+
+    int d = sysclcnt();
+    summarize("multi-block", c, d);
+
+    for (int i = 0; i < 3; i++) {
+        int before = sysclcnt();
+        printf("round %d\n", i);
+        int after = sysclcnt();
+
+        if (after < before) {
+            printf("FAIL: non-monotonic counter! before=%d after=%d\n", before, after);
+            exit(-1);
+        }
+    }
+
+    printf("All tests completed.\n");
+    exit(0);
+}
+

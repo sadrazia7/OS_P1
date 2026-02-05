@@ -9,6 +9,8 @@
 struct spinlock tickslock;
 uint ticks;
 
+
+
 extern char trampoline[], uservec[];
 
 // in kernelvec.S, calls kerneltrap().
@@ -216,4 +218,3 @@ devintr()
     return 0;
   }
 }
-

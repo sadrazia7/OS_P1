@@ -23,4 +23,5 @@
 #define SYS_sysclcnt 22
 #define SYS_ptree  23
 #define SYS_chpnice 24
-
+#define SYS_unshare 25
+#define SYS_trace   26

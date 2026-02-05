@@ -3,8 +3,11 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "defs.h"
+#include "proc.h"
 
 volatile static int started = 0;
+void swap_out_daemon(void);
+
 
 // start() jumps here in supervisor mode on all CPUs.
 void
@@ -29,6 +32,9 @@ main()
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
+    // ایجاد پردازه هسته برای مدیریت خروج صفحات از حافظه
+    create_kernel_process("swap_out_daemon", swap_out_daemon);
+
     __sync_synchronize();
     started = 1;
   } else {

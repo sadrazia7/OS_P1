@@ -105,6 +105,8 @@ extern uint64 sys_close(void);
 extern uint64 sys_sysclcnt(void);
 extern uint64 sys_ptree(void);
 extern uint64 sys_chpnice(void);
+extern uint64 sys_unshare(void);
+extern uint64 sys_trace(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -134,6 +136,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sysclcnt] sys_sysclcnt,
 [SYS_ptree] sys_ptree,
 [SYS_chpnice] sys_chpnice,
+[SYS_unshare]   sys_unshare,
+[SYS_trace] sys_trace,
 };
 
 void
