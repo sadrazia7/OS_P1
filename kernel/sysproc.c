@@ -47,17 +47,21 @@ sys_unshare(void)
 {
     int flags;
     struct proc *p = myproc();
-
     argint(0, &flags);
 
     // جدا کردن فضای نام PID
     if(flags & CLONE_NEWPID){
-        if(p->pid_ns)
-            p->pid_ns->refcount--;
-        struct pid_namespace *new_ns = (struct pid_namespace*)kalloc();
-        new_ns->refcount = 1;
-        p->pid_ns = new_ns;
-    }
+       struct pid_namespace *new_ns = kalloc();
+       if(new_ns == 0)
+           return -1;
+
+       initlock(&new_ns->lock, "pidns");
+       new_ns->nextpid = 1;
+       new_ns->refcount = 1;
+
+       p->pending_pid_ns = new_ns;
+   }
+
 
     // جدا کردن فضای نام UTS
     if(flags & CLONE_NEWUTS){

@@ -8,10 +8,12 @@
 
 struct cpu cpus[NCPU];
 
-struct pid_namespace root_pid_ns = { .refcount = 1 };
 struct uts_namespace root_uts_ns = { .nodename = "xv6" };
 struct mount_namespace root_mnt_ns;
 struct ipc_namespace root_ipc_ns;
+
+
+struct pid_namespace root_pid_ns;
 
 
 static void
@@ -184,7 +186,7 @@ void
 proc_mapstacks(pagetable_t kpgtbl)
 {
   struct proc *p;
-  
+
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
@@ -199,9 +201,14 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+
+  initlock(&root_pid_ns.lock, "pidns");
+  root_pid_ns.nextpid = 1;
+  root_pid_ns.refcount = 1
+	;
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -241,7 +248,7 @@ int
 allocpid()
 {
   int pid;
-  
+
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
@@ -267,7 +274,8 @@ allocproc(void)
   return 0;
 
 found:
-  p->pid = allocpid();
+  p->global_pid = allocpid();
+  p->pid = 0;
   p->state = USED;
   p->nice = 0;
   p->weight = nice_to_weight(p->nice);
@@ -297,7 +305,8 @@ found:
 
   p->trace_mask = 0;
 
-  p->pid_ns = 0;
+  p->pid_ns = &root_pid_ns;
+  p->pending_pid_ns = 0;
   p->uts_ns = 0;
   p->mnt_ns = 0;
   p->ipc_ns = 0;
@@ -438,12 +447,33 @@ kfork(void)
   np->trapframe->a0 = 0;
 
   np->trace_mask = p->trace_mask;
-  np->pid_ns = p->pid_ns;
+/* inherit namespaces FIRST */
+  if(p->pending_pid_ns){
+     np->pid_ns = p->pending_pid_ns;
+     p->pending_pid_ns = 0;
+}    else {
+     np->pid_ns = p->pid_ns;
+}
+
+  if(np->pid_ns)
+    /* np->pid_ns->refcount++; */
+    ns_incref(np);
+
+  /* ns_incref(np); */
+  /* now assign pid */
+  if(np->pid_ns){
+    if(np->pid_ns->nextpid == 1){
+      np->pid = 1;              // first process in namespace
+      np->pid_ns->nextpid = 2;
+    } else {
+      np->pid = np->pid_ns->nextpid++;
+    }
+  }
+
+
   np->uts_ns = p->uts_ns;
   np->mnt_ns = p->mnt_ns;
   np->ipc_ns = p->ipc_ns;
-  ns_incref(np);
-
   np->nice = p->nice;
   np->weight = p->weight;
   np->vruntime = p->vruntime;
@@ -457,7 +487,7 @@ kfork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
-  pid = np->pid;
+  pid = np->global_pid;
 
   release(&np->lock);
   acquire(&wait_lock);

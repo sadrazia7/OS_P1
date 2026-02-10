@@ -17,6 +17,13 @@ struct ipc_namespace {
   int refcount;
 };
 
+struct pid_namespace {
+  struct spinlock lock;
+  int refcount;
+  int nextpid;
+};
+
+
 
 // Saved registers for kernel context switches.
 struct context {
@@ -46,7 +53,7 @@ struct cpu {
   int intena;
 };
 
-extern struct cpu cpus[NCPU];
+extern struct cpu cpus[NCPU];;
 
 // Trapframe (unchanged)
 struct trapframe {
@@ -94,10 +101,6 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Namespace structures
 // =====================
 
-// حداقلی، فقط برای پاس شدن ns_test
-struct pid_namespace {
-  int refcount;
-};
 
 struct uts_namespace {
   char nodename[64];
@@ -112,8 +115,9 @@ struct proc {
   void *chan;
   int killed;
   int xstate;
-  int pid;
 
+  int pid;
+  int global_pid;
   // parent
   struct proc *parent;
 
@@ -139,6 +143,9 @@ struct proc {
   struct uts_namespace   *uts_ns;
   struct mount_namespace *mnt_ns;
   struct ipc_namespace   *ipc_ns;
+  struct pid_namespace *pending_pid_ns;
+
+
 
   // =====================
   // CFS scheduling fields

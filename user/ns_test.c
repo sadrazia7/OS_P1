@@ -1,14 +1,31 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-#define CLONE_NEWPID 0x01 // [cite: 247]
+#define CLONE_NEWPID 0x20000000
 
 int main() {
-    printf("--- Starting Namespace Test ---\n");
-    if(unshare(CLONE_NEWPID) < 0){ // جدا کردن PID Namespace [cite: 247]
-        printf("Unshare Failed!\n");
-    } else {
-        printf("Unshare Success! Process is now isolated.\n");
+    printf("--- Starting PID Namespace Test ---\n");
+
+    if (unshare(CLONE_NEWPID) < 0) {
+        printf("Unshare failed\n");
+        exit(1);
     }
+
+    int pid = fork();
+
+    if (pid < 0) {
+        printf("Fork failed\n");
+        exit(1);
+    }
+
+    if (pid == 0) {
+        // child
+        printf("Child PID inside namespace: %d\n", getpid());
+        exit(0);
+    } else {
+        wait(0);
+        printf("Parent sees child PID: %d\n", pid);
+    }
+
     exit(0);
 }
